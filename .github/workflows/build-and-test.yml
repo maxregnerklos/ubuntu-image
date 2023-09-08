@@ -1,23 +1,48 @@
 name: Build and Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
         with:
-          fetch-depth: 2
-      - name: install-go
-        run: sudo snap install go --classic
-      - name: build
+          go-version: 1.17
+
+      - name: Build
         run: go build ./...
-      - name: apt-update
-        run: sudo apt update
-      - name: install-test-dependencies
-        run: sudo apt install -y snapd germinate mtools debootstrap fdisk gdisk qemu-system-aarch64 qemu-user-static ubuntu-dev-tools
-      - name: test
-        run: sudo go test -timeout 0 -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Update APT
+        run: sudo apt-get update
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get install -y \
+            snapd \
+            germinate \
+            mtools \
+            debootstrap \
+            fdisk \
+            gdisk \
+            qemu-system-aarch64 \
+            qemu-user-static \
+            ubuntu-dev-tools
+
+      - name: Run tests
+        run: |
+          go test -timeout 0 -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
       - name: Upload coverage to Codecov
         run: bash <(curl -s https://codecov.io/bash)
